@@ -51,7 +51,23 @@ Implemented commit creation and log functionality.
 ![HEAD](images/phase4_head.png)
 
 ---
+---
 
+## Full Integration Test
+
+### Description
+This test verifies the complete workflow of the PES-VCS system including:
+- Repository initialization
+- Adding files
+- Creating commits
+- Viewing commit history
+
+### Output
+
+![Integration Step 1](images/integration1.png)  
+![Integration Step 2](images/integration2.png)
+
+---
 ## Analysis Answers
 
 ### Q5.1
