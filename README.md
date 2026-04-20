@@ -78,21 +78,40 @@ This test verifies the complete workflow of the PES-VCS system including:
 ![Integration Step 2](images/integration2.png)
 
 ---
-## Analysis Answers
+## Analysis Questions
 
-### Q5.1
-A branch is a file storing commit hash. Checkout updates HEAD and working directory.
-
-### Q5.2
-Dirty working directory is detected by comparing index metadata with working directory.
-
-### Q5.3
-Detached HEAD commits are not linked to branch but can be recovered via hash.
-
-### Q6.1
-Use graph traversal from branch heads to identify reachable objects.
-
-### Q6.2
-Garbage collection must avoid deleting objects used by active commits; Git uses locking.
+### Q5.1 — Branching and Checkout
+A branch is a file storing a commit hash.  
+Checkout involves updating HEAD and replacing the working directory using the target tree.  
+This is complex because it must avoid overwriting uncommitted changes.
 
 ---
+
+### Q5.2 — Dirty Working Directory Detection
+The system compares file metadata (mtime and size) in the index with the working directory.  
+If differences exist, checkout is prevented to avoid data loss.
+
+---
+
+### Q5.3 — Detached HEAD
+In detached HEAD, HEAD points directly to a commit instead of a branch.  
+New commits are not linked to any branch but can be recovered using commit hashes.
+
+---
+
+### Q6.1 — Garbage Collection
+Start from all branch heads, traverse commits, mark reachable objects, and delete unreachable ones.  
+A hash set is used to track visited objects efficiently.
+
+---
+
+### Q6.2 — GC Race Condition
+If garbage collection runs during a commit, it may delete objects being created.  
+Git avoids this using locking and atomic updates.
+
+---
+
+## Conclusion
+
+This project demonstrates how a version control system works internally by implementing object storage, tree structures, staging, and commit history.  
+It provides a strong understanding of filesystem design and data integrity used in Git.
