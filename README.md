@@ -12,6 +12,7 @@ SRN: PES2UG24CS367
 Implemented SHA-256 based content-addressable storage.
 Objects are stored in `.pes/objects` using directory sharding.
 
+
 ### Output
 1A
 ![Test](images/phase1_test.png)
