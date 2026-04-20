@@ -13,7 +13,9 @@ Implemented SHA-256 based content-addressable storage.
 Objects are stored in `.pes/objects` using directory sharding.
 
 ### Output
+1A
 ![Test](images/phase1_test.png)
+1B
 ![Objects](images/phase1_objects.png)
 
 ---
@@ -24,7 +26,9 @@ Objects are stored in `.pes/objects` using directory sharding.
 Implemented tree structure for directories with serialization.
 
 ### Output
+2A
 ![Tree](images/phase2_test.png)
+2B
 ![Hex](images/phase2_xxd.png)
 
 ---
@@ -35,7 +39,9 @@ Implemented tree structure for directories with serialization.
 Implemented staging area using a text-based index file.
 
 ### Output
+3A
 ![Status](images/phase3_status.png)
+3B
 ![Index](images/phase3_index.png)
 
 ---
@@ -46,8 +52,11 @@ Implemented staging area using a text-based index file.
 Implemented commit creation and log functionality.
 
 ### Output
+4A
 ![Log](images/phase4_log.png)
+4B
 ![Objects](images/phase4_objects.png)
+4C
 ![HEAD](images/phase4_head.png)
 
 ---
