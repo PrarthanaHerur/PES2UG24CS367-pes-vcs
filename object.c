@@ -93,12 +93,90 @@ int object_exists(const ObjectID *id) {
 
 //
 // Returns 0 on success, -1 on error.
-int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
     // TODO: Implement
-    (void)type; (void)data; (void)len; (void)id_out;
-    return -1;
-}
+int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
+    // 1. Create header
+    const char *type_str = (type == OBJ_BLOB) ? "blob" :
+                           (type == OBJ_TREE) ? "tree" : "commit";
 
+    char header[64];
+    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len);
+
+    // 2. Build full object = header + '\0' + data
+    size_t total_len = header_len + 1 + len;
+    unsigned char *buffer = malloc(total_len);
+    if (!buffer) return -1;
+
+    memcpy(buffer, header, header_len);
+    buffer[header_len] = '\0';
+    memcpy(buffer + header_len + 1, data, len);
+
+    // 3. Compute hash
+    ObjectID id;
+    compute_hash(buffer, total_len, &id);
+
+    // 4. Check if already exists
+    if (object_exists(&id)) {
+        *id_out = id;
+        free(buffer);
+        return 0;
+    }
+
+    // 5. Build path
+    char path[512];
+    object_path(&id, path, sizeof(path));
+
+    // Extract directory path (.pes/objects/XX)
+    char dir[512];
+    strncpy(dir, path, sizeof(dir));
+    char *slash = strrchr(dir, '/');
+    if (!slash) {
+        free(buffer);
+        return -1;
+    }
+    *slash = '\0';
+
+    // Create directory if not exists
+    mkdir(OBJECTS_DIR, 0755);
+    mkdir(dir, 0755);
+
+    // 6. Temp file
+    char tmp_path[512];
+    snprintf(tmp_path, sizeof(tmp_path), "%s/tmpXXXXXX", dir);
+    int fd = mkstemp(tmp_path);
+    if (fd < 0) {
+        free(buffer);
+        return -1;
+    }
+
+    // Write data
+    if (write(fd, buffer, total_len) != (ssize_t)total_len) {
+        close(fd);
+        free(buffer);
+        return -1;
+    }
+
+    // 7. fsync
+    fsync(fd);
+    close(fd);
+
+    // 8. rename to final path
+    if (rename(tmp_path, path) != 0) {
+        free(buffer);
+        return -1;
+    }
+
+    // 9. fsync directory
+    int dir_fd = open(dir, O_DIRECTORY);
+    if (dir_fd >= 0) {
+        fsync(dir_fd);
+        close(dir_fd);
+    }
+
+    *id_out = id;
+    free(buffer);
+    return 0;
+}
 // Read an object from the store.
 //
 // Steps:
@@ -122,7 +200,71 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
 // The caller is responsible for calling free(*data_out).
 // Returns 0 on success, -1 on error (file not found, corrupt, etc.).
 int object_read(const ObjectID *id, ObjectType *type_out, void **data_out, size_t *len_out) {
-    // TODO: Implement
-    (void)id; (void)type_out; (void)data_out; (void)len_out;
-    return -1;
+    // 1. Build path
+    char path[512];
+    object_path(id, path, sizeof(path));
+
+    FILE *fp = fopen(path, "rb");
+    if (!fp) return -1;
+
+    // Get file size
+    fseek(fp, 0, SEEK_END);
+    long file_size = ftell(fp);
+    rewind(fp);
+
+    unsigned char *buffer = malloc(file_size);
+    if (!buffer) {
+        fclose(fp);
+        return -1;
+    }
+
+    if (fread(buffer, 1, file_size, fp) != (size_t)file_size) {
+        fclose(fp);
+        free(buffer);
+        return -1;
+    }
+    fclose(fp);
+
+    // 2. Verify hash
+    ObjectID computed;
+    compute_hash(buffer, file_size, &computed);
+    if (memcmp(computed.hash, id->hash, HASH_SIZE) != 0) {
+        free(buffer);
+        return -1;
+    }
+
+    // 3. Find '\0'
+    char *null_pos = memchr(buffer, '\0', file_size);
+    if (!null_pos) {
+        free(buffer);
+        return -1;
+    }
+
+    // 4. Parse header
+    char type_str[10];
+    size_t size;
+    sscanf((char *)buffer, "%s %zu", type_str, &size);
+
+    if (strcmp(type_str, "blob") == 0)
+        *type_out = OBJ_BLOB;
+    else if (strcmp(type_str, "tree") == 0)
+        *type_out = OBJ_TREE;
+    else
+        *type_out = OBJ_COMMIT;
+
+    // 5. Extract data
+    size_t header_len = (null_pos - (char *)buffer) + 1;
+    unsigned char *data = malloc(size);
+    if (!data) {
+        free(buffer);
+        return -1;
+    }
+
+    memcpy(data, buffer + header_len, size);
+
+    *data_out = data;
+    *len_out = size;
+
+    free(buffer);
+    return 0;
 }
